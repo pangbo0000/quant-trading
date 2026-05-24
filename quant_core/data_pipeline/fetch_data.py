@@ -20,7 +20,7 @@ def fetch_stock_daily(symbol: str, start_date: str = "20200101", end_date: str =
     :return: Pandas DataFrame 行情数据
     """
     if not end_date:
-        end_date = datetime.today().strftime("%Y%m%dd")
+        end_date = datetime.today().strftime("%Y%m%d")
         
     print(f"📡 正在从 AkShare 获取 A股股票 {symbol} 的日线数据 ({start_date} -> {end_date})...")
     
@@ -78,7 +78,7 @@ def fetch_future_daily(symbol: str, start_date: str = "20200101", end_date: str 
     :return: Pandas DataFrame 行情数据
     """
     if not end_date:
-        end_date = datetime.today().strftime("%Y%m%dd")
+        end_date = datetime.today().strftime("%Y%m%d")
         
     print(f"📡 正在获取期货主力合约 {symbol} 的日线数据...")
     
