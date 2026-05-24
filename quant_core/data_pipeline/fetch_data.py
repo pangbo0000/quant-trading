@@ -22,7 +22,7 @@ def fetch_stock_daily(symbol: str, start_date: str = "20200101", end_date: str =
     if not end_date:
         end_date = datetime.today().strftime("%Y%m%d")
         
-    print(f"📡 正在从 AkShare 获取 A股股票 {symbol} 的日线数据 ({start_date} -> {end_date})...")
+    print(f"[DATA] 正在从 AkShare 获取 A股股票 {symbol} 的日线数据 ({start_date} -> {end_date})...")
     
     try:
         # adjust="qfq" 表示前复权，这是量化回测必须的，消除了除权除息带来的价格跳空
@@ -35,7 +35,7 @@ def fetch_stock_daily(symbol: str, start_date: str = "20200101", end_date: str =
         )
         
         if df.empty:
-            print(f"⚠️ 未获取到股票 {symbol} 的数据。")
+            print(f"[WARNING] 未获取到股票 {symbol} 的数据。")
             return pd.DataFrame()
             
         # 重命名列名，使其更符合量化系统的通用英文命名习惯
@@ -61,11 +61,11 @@ def fetch_stock_daily(symbol: str, start_date: str = "20200101", end_date: str =
         # 保存为本地 CSV 文件
         file_path = os.path.join(DATA_DIR, f"stock_{symbol}_daily.csv")
         df.to_csv(file_path, index=False)
-        print(f"✅ 数据成功保存至: {file_path} (共 {len(df)} 行记录)")
+        print(f"[SUCCESS] 数据成功保存至: {file_path} (共 {len(df)} 行记录)")
         return df
         
     except Exception as e:
-        print(f"❌ 获取股票 {symbol} 数据失败: {e}")
+        print(f"[ERROR] 获取股票 {symbol} 数据失败: {e}")
         return pd.DataFrame()
 
 def fetch_future_daily(symbol: str, start_date: str = "20200101", end_date: str = None) -> pd.DataFrame:
@@ -80,14 +80,14 @@ def fetch_future_daily(symbol: str, start_date: str = "20200101", end_date: str 
     if not end_date:
         end_date = datetime.today().strftime("%Y%m%d")
         
-    print(f"📡 正在获取期货主力合约 {symbol} 的日线数据...")
+    print(f"[DATA] 正在获取期货主力合约 {symbol} 的日线数据...")
     
     try:
         # 获取新浪财经的期货主力合约历史数据
         df = ak.futures_main_sina(symbol=symbol, start_date=start_date, end_date=end_date)
         
         if df.empty:
-            print(f"⚠️ 未获取到期货主力合约 {symbol} 的数据。")
+            print(f"[WARNING] 未获取到期货主力合约 {symbol} 的数据。")
             return pd.DataFrame()
             
         # 格式化日期和重命名
@@ -108,15 +108,15 @@ def fetch_future_daily(symbol: str, start_date: str = "20200101", end_date: str 
         # 保存为本地 CSV 文件
         file_path = os.path.join(DATA_DIR, f"future_{symbol}_daily.csv")
         df.to_csv(file_path, index=False)
-        print(f"✅ 数据成功保存至: {file_path} (共 {len(df)} 行记录)")
+        print(f"[SUCCESS] 数据成功保存至: {file_path} (共 {len(df)} 行记录)")
         return df
         
     except Exception as e:
-        print(f"❌ 获取期货主力合约 {symbol} 数据失败: {e}")
+        print(f"[ERROR] 获取期货主力合约 {symbol} 数据失败: {e}")
         return pd.DataFrame()
 
 if __name__ == "__main__":
-    print("🚀 AlphaQuant 历史行情数据下载器启动...")
+    print(">>> AlphaQuant 历史行情数据下载器启动...")
     
     # 示例 1: 下载股票“平安银行”(000001) 的日线历史数据
     fetch_stock_daily(symbol="000001", start_date="20230101")
