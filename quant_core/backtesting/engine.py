@@ -252,7 +252,7 @@ class BacktestEngine:
             print(f"{'品种':^6}{'方向':^6}{'入场时间':^18}{'入场价':^10}{'出场时间':^18}{'出场价':^10}{'盈亏(元)':^10}")
             print("-" * 80)
             for t in self.trades[-5:]:
-                print(f"{t['symbol']:^8}{t['type']:^6}{t['entry_time'].strftime('%m-%d %H:%M'):^18}{t['entry_price']:^11.1f}{t['exit_time'].strftime('%m-%d %H:%M'):^18}{t['exit_price']:^11.1f}{t['pnl_amount']:^12+,.2f}")
+                print(f"{t['symbol']:^8}{t['type']:^6}{t['entry_time'].strftime('%m-%d %H:%M'):^18}{t['entry_price']:^11.1f}{t['exit_time'].strftime('%m-%d %H:%M'):^18}{t['exit_price']:^11.1f}{t['pnl_amount']:^+12,.2f}")
             print("-" * 80 + "\n")
 
 # ==============================================================================
