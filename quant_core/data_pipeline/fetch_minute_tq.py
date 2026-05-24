@@ -84,7 +84,7 @@ def download_all_active_futures_minute(period: str = "5"):
     fail_count = 0
     
     print("\n==============================================================")
-    print(f"📦 开始执行全市场期货主力分钟线 ({period}分钟) 批量下载，共计 {total} 个品种")
+    print(f"--- 开始执行全市场期货主力分钟线 ({period}分钟) 批量下载，共计 {total} 个品种 ---")
     print("==============================================================")
     
     start_time = time.time()
@@ -105,10 +105,10 @@ def download_all_active_futures_minute(period: str = "5"):
     duration = end_time - start_time
     
     print("\n==============================================================")
-    print("🏁 高频分钟线批量下载任务执行完毕！")
-    print(f"📊 成功: {success_count} 个品种")
-    print(f"❌ 失败: {fail_count} 个品种")
-    print(f"⏱️ 总耗时: {duration:.2f} 秒")
+    print("--- 高频分钟线批量下载任务执行完毕！ ---")
+    print(f"    成功: {success_count} 个品种")
+    print(f"    失败: {fail_count} 个品种")
+    print(f"    总耗时: {duration:.2f} 秒")
     print("==============================================================")
 
 if __name__ == "__main__":
