@@ -1,0 +1,239 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+:root {
+  /* 核心色彩代币 */
+  --bg-dark: #080A0C;             /* 深邃太空黑 */
+  --bg-card: rgba(18, 22, 28, 0.75); /* 赛博暗灰（毛玻璃基底） */
+  --bg-input: #1B2026;            /* 输入框背景 */
+  --border-color: rgba(255, 255, 255, 0.06); /* 微弱科技感边框 */
+  --border-hover: rgba(59, 130, 246, 0.35);  /* 聚焦发光边框 */
+  
+  --neon-green: #0ECB81;          /* 极光亮绿 (多头/收益) */
+  --neon-red: #F6465D;            /* 霓虹亮红 (空头/回撤) */
+  --neon-blue: #3B82F6;           /* 赛博高亮蓝 (指标/按钮/科技风) */
+  --neon-yellow: #F3BA2F;         /* 警示橙黄 (持仓/状态) */
+  
+  --text-main: #F0F4F8;           /* 高亮白 (主文字) */
+  --text-muted: #848E9C;          /* 浅雾灰 (副文字) */
+  
+  --font-main: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  
+  --transition-fast: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  --shadow-glow: 0 0 15px rgba(59, 130, 246, 0.15);
+}
+
+/* ==============================================================================
+   1. 全局重置与极窄滚动条
+   ============================================================================== */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: var(--bg-dark);
+  color: var(--text-main);
+  font-family: var(--font-main);
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* 极致个性的极窄科技感滚动条 */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-dark);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--neon-blue);
+  box-shadow: 0 0 8px var(--neon-blue);
+}
+
+/* ==============================================================================
+   2. 赛博暗黑毛玻璃核心设计系统 (Glassmorphism)
+   ============================================================================== */
+.glass-container {
+  min-height: 100vh;
+  background: radial-gradient(circle at 10% 20%, rgba(59, 130, 246, 0.05) 0%, transparent 40%),
+              radial-gradient(circle at 90% 80%, rgba(14, 203, 129, 0.04) 0%, transparent 40%),
+              var(--bg-dark);
+  padding: 20px;
+}
+
+.glass-card {
+  background: var(--bg-card);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  transition: var(--transition-fast);
+}
+
+.glass-card:hover {
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.45), var(--shadow-glow);
+}
+
+/* ==============================================================================
+   3. 高级表单与微交互元素
+   ============================================================================== */
+.neon-input {
+  width: 100%;
+  background-color: var(--bg-input);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  color: var(--text-main);
+  font-family: var(--font-main);
+  font-size: 14px;
+  padding: 10px 12px;
+  transition: var(--transition-fast);
+  outline: none;
+}
+
+.neon-input:focus {
+  border-color: var(--neon-blue);
+  box-shadow: 0 0 10px rgba(59, 130, 246, 0.25);
+}
+
+.neon-select {
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23848E9C' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 16px;
+  padding-right: 32px;
+}
+
+.neon-btn {
+  background: linear-gradient(135deg, #2563EB 0%, var(--neon-blue) 100%);
+  border: none;
+  border-radius: 6px;
+  color: #FFFFFF;
+  cursor: pointer;
+  font-family: var(--font-main);
+  font-weight: 600;
+  font-size: 14px;
+  padding: 12px 24px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  transition: var(--transition-fast);
+  box-shadow: 0 4px 15px rgba(59, 130, 246, 0.2);
+}
+
+.neon-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4), 0 0 15px var(--neon-blue);
+}
+
+.neon-btn:active {
+  transform: translateY(1px);
+}
+
+.neon-btn-disabled {
+  background: #2D3748;
+  color: var(--text-muted);
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.neon-btn-disabled:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+/* ==============================================================================
+   4. 炫酷的数据表格与状态标记
+   ============================================================================== */
+.neon-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.neon-table th {
+  border-bottom: 1px solid var(--border-color);
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 500;
+  padding: 12px 16px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.neon-table td {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+  font-size: 13px;
+  padding: 12px 16px;
+  font-family: var(--font-mono);
+}
+
+.neon-table tr:hover td {
+  background-color: rgba(255, 255, 255, 0.01);
+  color: #FFFFFF;
+}
+
+/* 金融核心：多头与空头状态 */
+.badge {
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 6px;
+  text-transform: uppercase;
+}
+
+.badge-long {
+  background-color: rgba(14, 203, 129, 0.12);
+  color: var(--neon-green);
+}
+
+.badge-short {
+  background-color: rgba(246, 70, 93, 0.12);
+  color: var(--neon-red);
+}
+
+.color-up {
+  color: var(--neon-green) !important;
+}
+
+.color-down {
+  color: var(--neon-red) !important;
+}
+
+.color-blue {
+  color: var(--neon-blue) !important;
+}
+
+/* ==============================================================================
+   5. 多核自适应两栏布局栅格
+   ============================================================================== */
+.quant-layout {
+  display: grid;
+  grid-template-columns: 350px 1fr;
+  gap: 20px;
+  margin-top: 20px;
+}
+
+@media (max-width: 1200px) {
+  .quant-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.chart-grid {
+  display: grid;
+  grid-template-rows: 450px 250px;
+  gap: 20px;
+}
