@@ -16,23 +16,24 @@ except ImportError:
     sys.exit(1)
 
 # ==============================================================================
-# 天勤量化 (TqSdk) 期货主力合约与新浪代码的映射
-# 天勤的主力连续合约代码规则：品种小写英文缩写 + .MAIN (例如 SR.MAIN, rb.MAIN, au.MAIN)
+# 天勤量化 (TqSdk) 期货主力连续合约代码映射
+# 天勤的商品期货主力连续合约格式为：KQ.m@交易所代码.品种小写代码
+# 交易所代码包括：SHFE (上期所), CZCE (郑商所), DCE (大商所), CFFEX (中金所), INE (能源中心)
 # ==============================================================================
 TQ_FUTURES_MAP = {
-    "SR.MAIN":  "白糖主力",
-    "rb.MAIN":  "螺纹主力",
-    "i.MAIN":   "铁矿主力",
-    "ma.MAIN":  "甲醇主力",
-    "ta.MAIN":  "PTA主力",
-    "ru.MAIN":  "橡胶主力",
-    "au.MAIN":  "黄金主力",
-    "ag.MAIN":  "白银主力",
-    "cu.MAIN":  "沪铜主力",
-    "m.MAIN":   "豆粕主力",
-    "y.MAIN":   "豆油主力",
-    "p.MAIN":   "棕榈主力",
-    "jd.MAIN":  "鸡蛋主力"
+    "KQ.m@CZCE.SR":  "白糖主连",
+    "KQ.m@SHFE.rb":  "螺纹主连",
+    "KQ.m@DCE.i":    "铁矿主连",
+    "KQ.m@CZCE.ma":  "甲醇主连",
+    "KQ.m@CZCE.ta":  "PTA主连",
+    "KQ.m@SHFE.ru":  "橡胶主连",
+    "KQ.m@SHFE.au":  "黄金主连",
+    "KQ.m@SHFE.ag":  "白银主连",
+    "KQ.m@SHFE.cu":  "沪铜主连",
+    "KQ.m@DCE.m":    "豆粕主连",
+    "KQ.m@DCE.y":    "豆油主连",
+    "KQ.m@DCE.p":    "棕榈主连",
+    "KQ.m@DCE.jd":   "鸡蛋主连"
 }
 
 def download_minute_data(username: str, password: str, symbol: str, duration_seconds: int = 60, start_date: str = "2023-01-01 09:00:00"):
@@ -41,7 +42,7 @@ def download_minute_data(username: str, password: str, symbol: str, duration_sec
     
     :param username: 天勤量化官网注册的账号（手机号）
     :param password: 天勤量化账号密码
-    :param symbol: 天勤合约代码，如 "rb.MAIN" 或 "SR.MAIN"
+    :param symbol: 天勤合约代码，如 "KQ.m@SHFE.rb" 或 "KQ.m@CZCE.SR"
     :param duration_seconds: K线周期（秒），60 表示 1分钟线，300 表示 5分钟线，900 表示 15分钟线
     :param start_date: 下载的起始时间，格式 YYYY-MM-DD HH:MM:SS
     """
@@ -49,8 +50,20 @@ def download_minute_data(username: str, password: str, symbol: str, duration_sec
     period_names = {60: "1m", 300: "5m", 900: "15m", 1800: "30m", 3600: "1h"}
     period_str = period_names.get(duration_seconds, f"{duration_seconds}s")
     
+    # 提取品种的小写简称用于文件名，例如 "KQ.m@SHFE.rb" 提取出 "rb"
+    if "KQ.m@" in symbol:
+        try:
+            symbol_name = symbol.split("@")[1].split(".")[1]
+        except Exception:
+            symbol_name = symbol.replace("@", "_").replace(".", "_")
+    else:
+        try:
+            symbol_name = symbol.split(".")[1]
+        except Exception:
+            symbol_name = symbol
+            
     contract_show_name = TQ_FUTURES_MAP.get(symbol, symbol)
-    file_name = f"future_{symbol.split('.')[0]}_{period_str}.csv"
+    file_name = f"future_{symbol_name}_{period_str}.csv"
     file_path = os.path.join(DATA_DIR, file_name)
     
     print(f"\n[DATA] 准备下载 {contract_show_name} ({symbol}) 的 {period_str} 历史数据...")
@@ -58,7 +71,6 @@ def download_minute_data(username: str, password: str, symbol: str, duration_sec
     
     try:
         # 1. 验证天勤账户并初始化 API 实例
-        # 免费版使用 TqAuth 授权，连接天勤官方数据服务器
         api = TqApi(auth=TqAuth(username, password))
         
         # 2. 将输入的起始时间转换为 datetime 类型
@@ -68,7 +80,6 @@ def download_minute_data(username: str, password: str, symbol: str, duration_sec
         contract = api.get_quote(symbol)
         
         # 4. 创建天勤的高效数据下载器 (DataDownloader)
-        # 支持多线程并发下载、网络断点后续传，非常强大
         downloader = DataDownloader(
             api=api,
             symbol_list=[symbol],
@@ -78,7 +89,7 @@ def download_minute_data(username: str, password: str, symbol: str, duration_sec
             csv_file_name=file_path
         )
         
-        print("[DOWNLOADING] 下载已启动，正在疯狂抓取服务器数据，请稍候...")
+        print("[DOWNLOADING] 下载已启动，正在从天勤数据中心抓取，请稍候...")
         
         # 5. 循环监控下载进度
         while not downloader.is_finished():
@@ -104,19 +115,19 @@ if __name__ == "__main__":
     # 1. 请前往天勤量化官网 (https://www.shinnytech.com/tqsdk/) 注册一个免费开发者账号。
     # 2. 将您的账号（手机号）和密码填入下方。
     # ==============================================================================
-    TQ_USER = os.getenv("TUSHARE_TOKEN", "YOUR_PHONE_NUMBER")  # 可在此处硬编码，或未来使用 .env 文件加载
-    TQ_PASS = "YOUR_PASSWORD"
+    TQ_USER = "YOUR_PHONE_NUMBER"  # 请替换为您的天勤注册手机号
+    TQ_PASS = "YOUR_PASSWORD"      # 请替换为您的天勤密码
     
     if TQ_USER == "YOUR_PHONE_NUMBER" or TQ_PASS == "YOUR_PASSWORD":
         print("\n[WARNING] 您尚未配置天勤量化的账号和密码！")
         print("请在脚本中填写您的账号（手机号）与密码后，再运行此分钟线下载器。")
         print("天勤账号注册地址: https://www.shinnytech.com/tqsdk/ (完全免费)")
     else:
-        # 默认示例：下载 螺纹钢主力合约 (rb.MAIN) 2024年以来的 5分钟 (period=300) 数据
+        # 默认示例：下载 螺纹钢主力连续合约 (KQ.m@SHFE.rb) 2024年以来的 5分钟 (period=300) 数据
         download_minute_data(
             username=TQ_USER,
             password=TQ_PASS,
-            symbol="rb.MAIN",
+            symbol="KQ.m@SHFE.rb",
             duration_seconds=300,  # 300 秒 = 5 分钟
             start_date="2024-01-01 09:00:00"
         )
