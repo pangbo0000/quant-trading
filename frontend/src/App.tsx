@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { createChart } from 'lightweight-charts';
+import { createChart, CandlestickSeries } from 'lightweight-charts';
 import type { IChartApi, ISeriesApi } from 'lightweight-charts';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
 
@@ -57,7 +57,7 @@ const TVChart: React.FC<{ data: ChartData[] }> = ({ data }) => {
     });
 
     // B. 创建 K 线序列，配置极光绿和霓虹红的 K 线配色
-    const candlestickSeries = chart.addCandlestickSeries({
+    const candlestickSeries = chart.addSeries(CandlestickSeries, {
       upColor: '#0ECB81',
       downColor: '#F6465D',
       borderUpColor: '#0ECB81',
