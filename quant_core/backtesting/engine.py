@@ -30,6 +30,7 @@ class BacktestEngine:
         self.results = pd.DataFrame()
         self.trades = []
         self.metrics = {}
+        self.file_name = ""
 
     def load_data(self, file_name: str) -> pd.DataFrame:
         """
@@ -44,6 +45,7 @@ class BacktestEngine:
         df["date"] = pd.to_datetime(df["date"])
         df = df.sort_values("date").reset_index(drop=True)
         self.df = df
+        self.file_name = file_name
         print(f"[ENGINE] 数据加载成功，共 {len(self.df)} 行记录 (时间跨度: {self.df['date'].min()} -> {self.df['date'].max()})")
         return self.df
 
@@ -111,7 +113,7 @@ class BacktestEngine:
                     # 记录一笔完整的交易流水
                     pnl_ratio = (real_exit_price / entry_price - 1.0) * position
                     self.trades.append({
-                        "symbol": file_name.split("_")[1].upper(),
+                        "symbol": self.file_name.split("_")[1].upper(),
                         "type": "LONG" if position == 1 else "SHORT",
                         "entry_time": entry_time,
                         "entry_price": entry_price,
@@ -184,10 +186,9 @@ class BacktestEngine:
         max_drawdown = drawdown.min()
         
         # 计算夏普比率 (Sharpe Ratio)
-        # 期货策略由于交易频次和数据采样不一，我们使用收益率波动比折算年化夏普
+        # 期货策略由于交易频次 and 数据采样不一，我们使用收益率波动比折算年化夏普
         returns = df["returns"]
         if returns.std() != 0:
-            # 假设无风险利率为 0
             sharpe_ratio = (returns.mean() / returns.std()) * np.sqrt(250 * 240 if len(df) > 5000 else 250)
         else:
             sharpe_ratio = 0.0
@@ -218,7 +219,7 @@ class BacktestEngine:
 
     def output_report(self):
         """
-        用极其精美、富有科技感的排版在控制台打印策略回测分析报告
+        用极其精美、富有科技感的排版在控制台打印策略回测分析报告 (兼容所有控制台编码)
         """
         m = self.metrics
         if not m:
@@ -226,27 +227,27 @@ class BacktestEngine:
             return
             
         print("\n" + "="*60)
-        print("📊   AlphaQuant 极速量化策略回测绩效分析报告   📊")
+        print("[REPORT]   AlphaQuant 极速量化策略回测绩效分析报告   [REPORT]")
         print("="*60)
         print(f" 初始资金  : {self.initial_capital:,.2f} 元")
         print(f" 期末资产  : {self.results['portfolio_value'].iloc[-1]:,.2f} 元")
         print(f" 时间跨度  : {self.results['date'].min()} 至 {self.results['date'].max()}")
         print("-" * 60)
-        print(f" 🟢 累计收益率  : {m['total_return']:+.2%}")
-        print(f" 🟢 年化收益率  : {m['annualized_return']:+.2%}")
-        print(f" 🔴 最大资金回撤: {m['max_drawdown']:.2%}")
-        print(f" 🔵 策略夏普比率: {m['sharpe_ratio']:.3f}")
+        print(f" [+] 累计收益率  : {m['total_return']:+.2%}")
+        print(f" [+] 年化收益率  : {m['annualized_return']:+.2%}")
+        print(f" [-] 最大资金回撤: {m['max_drawdown']:.2%}")
+        print(f" [*] 策略夏普比率: {m['sharpe_ratio']:.3f}")
         print("-" * 60)
-        print(f" 💼 总交易笔数  : {m['total_trades']} 笔")
-        print(f" 📈 策略胜率    : {m['win_rate']:.2%}")
-        print(f" ⚖️ 盈亏金额比  : {m['profit_loss_ratio']:.2f} (单笔平均盈利/单笔平均亏损)")
-        print(f" 💵 平均单笔盈利: {m['avg_profit']:+,.2f} 元")
-        print(f" 💸 平均单笔亏损: {m['avg_loss']:+,.2f} 元")
+        print(f" [STATS] 总交易笔数  : {m['total_trades']} 笔")
+        print(f" [WIN]   策略胜率    : {m['win_rate']:.2%}")
+        print(f" [RATIO] 盈亏金额比  : {m['profit_loss_ratio']:.2f} (单笔平均盈利/单笔平均亏损)")
+        print(f" [+] 平均单笔盈利: {m['avg_profit']:+,.2f} 元")
+        print(f" [-] 平均单笔亏损: {m['avg_loss']:+,.2f} 元")
         print("="*60)
         
         # 打印最近 5 笔交易明细
         if self.trades:
-            print("\n📋 最近 5 笔交易详细明细:")
+            print("\n[DETAILS] 最近 5 笔交易详细明细:")
             print("-" * 80)
             print(f"{'品种':^6}{'方向':^6}{'入场时间':^18}{'入场价':^10}{'出场时间':^18}{'出场价':^10}{'盈亏(元)':^10}")
             print("-" * 80)
