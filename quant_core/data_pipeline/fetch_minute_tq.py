@@ -1,133 +1,121 @@
 import os
-import sys
-from datetime import datetime
+import time
+import pandas as pd
+import akshare as ak
 
 # 获取当前项目根目录
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 DATA_DIR = os.path.join(BASE_DIR, "data")
 os.makedirs(DATA_DIR, exist_ok=True)
 
-# 尝试导入 tqsdk
-try:
-    from tqsdk import TqApi, TqAuth
-    from tqsdk.tools import DataDownloader
-except ImportError:
-    print("[ERROR] 未检测到 tqsdk 库。请先在终端运行: pip install tqsdk")
-    sys.exit(1)
-
 # ==============================================================================
-# 天勤量化 (TqSdk) 期货主力连续合约代码映射
-# 天勤的商品期货主力连续合约格式为：KQ.m@交易所代码.品种小写代码
-# 交易所代码包括：SHFE (上期所), CZCE (郑商所), DCE (大商所), CFFEX (中金所), INE (能源中心)
+# 国内期货最活跃、最核心的品种列表（新浪财经主力连续合约代码）
 # ==============================================================================
-TQ_FUTURES_MAP = {
-    "KQ.m@CZCE.SR":  "白糖主连",
-    "KQ.m@SHFE.rb":  "螺纹主连",
-    "KQ.m@DCE.i":    "铁矿主连",
-    "KQ.m@CZCE.ma":  "甲醇主连",
-    "KQ.m@CZCE.ta":  "PTA主连",
-    "KQ.m@SHFE.ru":  "橡胶主连",
-    "KQ.m@SHFE.au":  "黄金主连",
-    "KQ.m@SHFE.ag":  "白银主连",
-    "KQ.m@SHFE.cu":  "沪铜主连",
-    "KQ.m@DCE.m":    "豆粕主连",
-    "KQ.m@DCE.y":    "豆油主连",
-    "KQ.m@DCE.p":    "棕榈主连",
-    "KQ.m@DCE.jd":   "鸡蛋主连"
+FUTURES_MARKET_MAP = {
+    "SR0":  "白糖主力",
+    "RB0":  "螺纹主力",
+    "I0":   "铁矿主力",
+    "MA0":  "甲醇主力",
+    "TA0":  "PTA主力",
+    "RU0":  "橡胶主力",
+    "AU0":  "黄金主力",
+    "AG0":  "白银主力",
+    "CU0":  "沪铜主力",
+    "M0":   "豆粕主力",
+    "Y0":   "豆油主力",
+    "P0":   "棕榈主力",
+    "JD0":  "鸡蛋主力"
 }
 
-def download_minute_data(username: str, password: str, symbol: str, duration_seconds: int = 60, start_date: str = "2023-01-01 09:00:00"):
+def download_minute_data_free(symbol: str, period: str = "5"):
     """
-    通过天勤量化 (TqSdk) 下载高频分钟线历史数据并保存为 CSV
+    通过 AkShare 免费接口获取国内期货主力合约的高频分钟线数据并保存为 CSV
+    (该接口完全免登录、免账号、无付费限制)
     
-    :param username: 天勤量化官网注册的账号（手机号）
-    :param password: 天勤量化账号密码
-    :param symbol: 天勤合约代码，如 "KQ.m@SHFE.rb" 或 "KQ.m@CZCE.SR"
-    :param duration_seconds: K线周期（秒），60 表示 1分钟线，300 表示 5分钟线，900 表示 15分钟线
-    :param start_date: 下载的起始时间，格式 YYYY-MM-DD HH:MM:SS
+    :param symbol: 期货主力连续合约代码，如 "RB0", "SR0"
+    :param period: 数据周期（分钟），可选值为 "1", "5", "15", "30", "60"
     """
-    # 自动识别周期名称用于文件命名
-    period_names = {60: "1m", 300: "5m", 900: "15m", 1800: "30m", 3600: "1h"}
-    period_str = period_names.get(duration_seconds, f"{duration_seconds}s")
-    
-    # 提取品种的小写简称用于文件名，例如 "KQ.m@SHFE.rb" 提取出 "rb"
-    if "KQ.m@" in symbol:
-        try:
-            symbol_name = symbol.split("@")[1].split(".")[1]
-        except Exception:
-            symbol_name = symbol.replace("@", "_").replace(".", "_")
-    else:
-        try:
-            symbol_name = symbol.split(".")[1]
-        except Exception:
-            symbol_name = symbol
-            
-    contract_show_name = TQ_FUTURES_MAP.get(symbol, symbol)
-    file_name = f"future_{symbol_name}_{period_str}.csv"
+    contract_show_name = FUTURES_MARKET_MAP.get(symbol, symbol)
+    period_str = f"{period}m"
+    file_name = f"future_{symbol.lower().replace('0', '')}_{period_str}.csv"
     file_path = os.path.join(DATA_DIR, file_name)
     
-    print(f"\n[DATA] 准备下载 {contract_show_name} ({symbol}) 的 {period_str} 历史数据...")
-    print(f"[DATA] 起始时间: {start_date} | 保存目标: {file_path}")
+    print(f"\n[DATA] 正在通过 AkShare 免费通道下载 {contract_show_name} ({symbol}) 的 {period_str} 行情数据...")
     
     try:
-        # 1. 验证天勤账户并初始化 API 实例
-        api = TqApi(auth=TqAuth(username, password))
+        # 调用新浪财经的公开高频分时接口 (免账号密码，完全免费)
+        df = ak.futures_zh_minute_sina(symbol=symbol, period=period)
         
-        # 2. 将输入的起始时间转换为 datetime 类型
-        start_dt = datetime.strptime(start_date, "%Y-%m-%d %H:%M:%S")
-        
-        # 3. 获取交易所合约信息
-        contract = api.get_quote(symbol)
-        
-        # 4. 创建天勤的高效数据下载器 (DataDownloader)
-        downloader = DataDownloader(
-            api=api,
-            symbol_list=[symbol],
-            dur_sec=duration_seconds,
-            start_dt=start_dt,
-            end_dt=datetime.now(),
-            csv_file_name=file_path
-        )
-        
-        print("[DOWNLOADING] 下载已启动，正在从天勤数据中心抓取，请稍候...")
-        
-        # 5. 循环监控下载进度
-        while not downloader.is_finished():
-            # 驱动 API 运转，获取最新进度
-            api.wait_update()
-            # 实时输出进度百分比
-            print(f"\r⌛ 正在下载: [{downloader.get_progress():.2%}]", end="", flush=True)
+        if df.empty:
+            print(f"[WARNING] 未获取到 {symbol} 的分钟线数据。")
+            return pd.DataFrame()
             
-        print(f"\n[SUCCESS] {contract_show_name} {period_str} 历史数据下载成功并已保存！")
+        # 重命名列名，使其与我们日线系统字段保持一致
+        df = df.rename(columns={
+            "datetime": "date",
+            "open": "open",
+            "high": "high",
+            "low": "low",
+            "close": "close",
+            "volume": "volume",
+            "hold": "open_interest"
+        })
         
-        # 6. 关闭 API 连接，释放资源
-        api.close()
+        # 确保时间列格式化正确并排序
+        df["date"] = pd.to_datetime(df["date"])
+        df = df.sort_values("date").reset_index(drop=True)
+        
+        # 保存为 CSV
+        df.to_csv(file_path, index=False)
+        print(f"[SUCCESS] {contract_show_name} {period_str} 历史数据抓取成功！")
+        print(f"[SUCCESS] 保存路径: {file_path} (共 {len(df)} 行最新记录)")
+        return df
         
     except Exception as e:
-        print(f"\n[ERROR] 数据下载失败: {e}")
-        print("[TIP] 请检查您的天勤用户名、密码是否正确，或者网络是否通畅。")
+        print(f"[ERROR] 抓取 {symbol} 分钟线数据失败: {e}")
+        return pd.DataFrame()
+
+def download_all_active_futures_minute(period: str = "5"):
+    """
+    一键获取所有主流活跃期货品种的分钟K线数据
+    """
+    total = len(FUTURES_MARKET_MAP)
+    success_count = 0
+    fail_count = 0
+    
+    print("\n==============================================================")
+    print(f"📦 开始执行全市场期货主力分钟线 ({period}分钟) 批量下载，共计 {total} 个品种")
+    print("==============================================================")
+    
+    start_time = time.time()
+    
+    for idx, (symbol, name) in enumerate(FUTURES_MARKET_MAP.items(), 1):
+        print(f"\n[{idx}/{total}] 正在下载: {symbol} - {name}")
+        df = download_minute_data_free(symbol=symbol, period=period)
+        
+        if not df.empty:
+            success_count += 1
+        else:
+            fail_count += 1
+            
+        # 合理延时 0.5 秒，保护公共 API 的同时提高下载速度
+        time.sleep(0.5)
+        
+    end_time = time.time()
+    duration = end_time - start_time
+    
+    print("\n==============================================================")
+    print("🏁 高频分钟线批量下载任务执行完毕！")
+    print(f"📊 成功: {success_count} 个品种")
+    print(f"❌ 失败: {fail_count} 个品种")
+    print(f"⏱️ 总耗时: {duration:.2f} 秒")
+    print("==============================================================")
 
 if __name__ == "__main__":
-    print(">>> AlphaQuant 高频分钟线下载器 (基于 TqSdk) <<<")
+    print(">>> AlphaQuant 免费版高频分钟线抓取器 (免登录·无限制版) <<<")
+    print("[INFO] 天勤量化免费版对历史高频下载实施了商业限制。")
+    print("[INFO] 系统已自动帮您无缝升级为基于 AkShare 的完全免费开源行情引擎！")
+    print("[INFO] 无需任何账号和密码，即可一键下载全市场分钟线数据。")
     
-    # ==============================================================================
-    # ⚠️ 说明：天勤量化 (TqSdk) 获取分钟级及 Tick 级历史数据需要天勤账号授权。
-    # 1. 请前往天勤量化官网 (https://www.shinnytech.com/tqsdk/) 注册一个免费开发者账号。
-    # 2. 将您的账号（手机号）和密码填入下方。
-    # ==============================================================================
-    TQ_USER = "YOUR_PHONE_NUMBER"  # 请替换为您的天勤注册手机号
-    TQ_PASS = "YOUR_PASSWORD"      # 请替换为您的天勤密码
-    
-    if TQ_USER == "YOUR_PHONE_NUMBER" or TQ_PASS == "YOUR_PASSWORD":
-        print("\n[WARNING] 您尚未配置天勤量化的账号和密码！")
-        print("请在脚本中填写您的账号（手机号）与密码后，再运行此分钟线下载器。")
-        print("天勤账号注册地址: https://www.shinnytech.com/tqsdk/ (完全免费)")
-    else:
-        # 默认示例：下载 螺纹钢主力连续合约 (KQ.m@SHFE.rb) 2024年以来的 5分钟 (period=300) 数据
-        download_minute_data(
-            username=TQ_USER,
-            password=TQ_PASS,
-            symbol="KQ.m@SHFE.rb",
-            duration_seconds=300,  # 300 秒 = 5 分钟
-            start_date="2024-01-01 09:00:00"
-        )
+    # 默认执行：下载所有国内主流活跃期货主力合约最新的 5分钟 K 线数据
+    download_all_active_futures_minute(period="5")
