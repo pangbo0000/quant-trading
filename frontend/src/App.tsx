@@ -7,7 +7,7 @@ import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianG
 const API_BASE_URL = 'http://127.0.0.1:8000/api/v1';
 
 // ==============================================================================
-// 1. TradingView 交互式 K 线图组件 (内置买卖箭头绘制)
+// 1. TradingView 交互式 K 线图组件 (内置时间戳严格去重单调递增过滤)
 // ==============================================================================
 interface ChartData {
   date: string;
@@ -66,46 +66,56 @@ const TVChart: React.FC<{ data: ChartData[] }> = ({ data }) => {
       wickDownColor: '#F6465D',
     });
 
-    // C. 格式化数据并喂入图表 (Lightweight Charts 接收 Unix 时间戳秒数)
-    const formattedData = data.map(item => {
-      const timestamp = Math.floor(new Date(item.date).getTime() / 1000);
-      return {
-        time: timestamp as any,
-        open: item.open,
-        high: item.high,
-        low: item.low,
-        close: item.close,
-      };
-    });
-
-    candlestickSeries.setData(formattedData);
-
-    // D. 📢 高级核心功能：遍历交易信号并绘制 TradingView 交互箭标记 (Markers)
+    // 🚀 高阶防崩溃设计：对数据进行时间戳严格去重与单调递增过滤
+    // 这能 100% 避免因节假日时差重合数据抛出 "time must be strictly increasing" 断言错误导致页面白屏卸载
+    const seenTimes = new Set<number>();
+    const formattedData: any[] = [];
     const markers: any[] = [];
-    data.forEach(item => {
+
+    // 对原始数据按日期正序排序，确保单调性
+    const sortedData = [...data].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+    sortedData.forEach(item => {
       const timestamp = Math.floor(new Date(item.date).getTime() / 1000);
-      if (item.signal === 1) {
-        // 金叉买入金标
-        markers.push({
+      
+      // 过滤掉无效时间戳和重复时间戳
+      if (!isNaN(timestamp) && !seenTimes.has(timestamp)) {
+        seenTimes.add(timestamp);
+        
+        // 加入 K 线点
+        formattedData.push({
           time: timestamp as any,
-          position: 'belowBar',
-          color: '#0ECB81',
-          shape: 'arrowUp',
-          text: 'BUY',
-          size: 1.5
+          open: item.open,
+          high: item.high,
+          low: item.low,
+          close: item.close,
         });
-      } else if (item.signal === -1) {
-        // 死叉卖出红标
-        markers.push({
-          time: timestamp as any,
-          position: 'aboveBar',
-          color: '#F6465D',
-          shape: 'arrowDown',
-          text: 'SELL',
-          size: 1.5
-        });
+
+        // 绑定信号标记
+        if (item.signal === 1) {
+          markers.push({
+            time: timestamp as any,
+            position: 'belowBar',
+            color: '#0ECB81',
+            shape: 'arrowUp',
+            text: 'BUY',
+            size: 1.5
+          });
+        } else if (item.signal === -1) {
+          markers.push({
+            time: timestamp as any,
+            position: 'aboveBar',
+            color: '#F6465D',
+            shape: 'arrowDown',
+            text: 'SELL',
+            size: 1.5
+          });
+        }
       }
     });
+
+    // 喂入清洗后的完美递增数据
+    candlestickSeries.setData(formattedData);
 
     if (markers.length > 0) {
       candlestickSeries.setMarkers(markers);
@@ -147,8 +157,8 @@ const TVChart: React.FC<{ data: ChartData[] }> = ({ data }) => {
 
 export default function App() {
   // 元数据状态
-  const [symbols, setSymbols] = useState<Record<str, str>>({});
-  const [periods, setPeriods] = useState<str[]>([]);
+  const [symbols, setSymbols] = useState<Record<string, string>>({});
+  const [periods, setPeriods] = useState<string[]>([]);
   
   // 回测请求表单参数状态
   const [selectedSymbol, setSelectedSymbol] = useState('rb');
@@ -188,6 +198,10 @@ export default function App() {
   const handleRunBacktest = () => {
     setLoading(true);
     setErrorMsg('');
+    setMetrics(null);
+    setEquityCurve([]);
+    setKlineData([]);
+    setTrades([]);
     
     const requestPayload = {
       symbol: selectedSymbol,
@@ -321,7 +335,7 @@ export default function App() {
               <TVChart data={klineData} />
             ) : (
               <div style={{ height: 'calc(100% - 30px)', display: 'flex', justifyContent: 'center', alignItems: 'center', color: 'var(--text-muted)' }}>
-                请在左侧配置好参数，点击“启动极速回测”以激活 TradingView 交互式 K 线图表
+                {loading ? '量化核心高速运算中，正在加载 TradingView 图表组件...' : '请在左侧配置好参数，点击“启动极速回测”以激活 TradingView 交互式 K 线图表'}
               </div>
             )}
           </div>
@@ -330,8 +344,8 @@ export default function App() {
           <div className="glass-card" style={{ padding: '15px', minHeight: '0' }}>
             <div style={{ fontWeight: 600, fontSize: '14px', marginBottom: '10px' }}>📉 组合总资产权益净值走势曲线 (Equity Curve)</div>
             {equityCurve.length > 0 ? (
-              <div style={{ width: '100%', height: 'calc(100% - 30px)' }}>
-                <ResponsiveContainer width="100%" height="100%">
+              <div style={{ width: '100%', height: '200px' }}>
+                <ResponsiveContainer width="100%" height={200}>
                   <AreaChart data={equityCurve} margin={{ top: 5, right: 5, left: 10, bottom: 5 }}>
                     <defs>
                       <linearGradient id="colorGlow" x1="0" y1="0" x2="0" y2="1">
@@ -360,7 +374,7 @@ export default function App() {
               </div>
             ) : (
               <div style={{ height: 'calc(100% - 30px)', display: 'flex', justifyContent: 'center', alignItems: 'center', color: 'var(--text-muted)' }}>
-                暂无回测资金曲线数据
+                {loading ? '量化核心高速运算中，正在加载资金净值曲线...' : '暂无回测资金曲线数据'}
               </div>
             )}
           </div>
